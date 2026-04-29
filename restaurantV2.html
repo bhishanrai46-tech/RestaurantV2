@@ -1,0 +1,654 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0f14;--surface:#16181f;--surface2:#1e2028;--surface3:#252832;
+  --amber:#f5a623;--amber2:#ffc65a;--teal:#2dd4bf;--coral:#f87171;--violet:#a78bfa;--green:#34d399;--blue:#60a5fa;
+  --text:#f1f0eb;--muted:#8b8fa8;--border:rgba(255,255,255,0.07);
+  --grad1:linear-gradient(135deg,#f5a623,#f87171);
+  --grad2:linear-gradient(135deg,#2dd4bf,#60a5fa);
+  --grad3:linear-gradient(135deg,#a78bfa,#f87171);
+  --grad4:linear-gradient(135deg,#34d399,#2dd4bf);
+}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+
+/* Layout */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.main{margin-left:220px;flex:1;padding:28px 28px 40px}
+
+/* Sidebar */
+.logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:'Playfair Display',serif;font-size:20px;background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.nav{padding:16px 12px;flex:1}
+.nav-section{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:8px 8px 6px;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all 0.2s;margin-bottom:2px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(245,166,35,0.12);color:var(--amber)}
+.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.version-badge{font-size:10px;color:var(--muted);background:var(--surface2);padding:4px 8px;border-radius:20px;display:inline-block}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.page-title{font-family:'Playfair Display',serif;font-size:24px;color:var(--text)}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn{padding:8px 16px;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s}
+.btn-primary{background:var(--amber);color:#0e0f14}
+.btn-primary:hover{background:var(--amber2)}
+.btn-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);background:var(--surface3)}
+
+/* Pages */
+.page{display:none}
+.page.active{display:block}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;transition:transform 0.2s}
+.kpi-card:hover{transform:translateY(-2px)}
+.kpi-accent{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+.kpi-accent.amber{background:rgba(245,166,35,0.15)}
+.kpi-accent.teal{background:rgba(45,212,191,0.15)}
+.kpi-accent.coral{background:rgba(248,113,113,0.15)}
+.kpi-accent.violet{background:rgba(167,139,250,0.15)}
+.kpi-accent.green{background:rgba(52,211,153,0.15)}
+.kpi-accent.blue{background:rgba(96,165,250,0.15)}
+.kpi-label{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.kpi-val{font-size:26px;font-family:'Playfair Display',serif;font-weight:700}
+.kpi-val.amber{color:var(--amber)}
+.kpi-val.teal{color:var(--teal)}
+.kpi-val.coral{color:var(--coral)}
+.kpi-val.violet{color:var(--violet)}
+.kpi-val.green{color:var(--green)}
+.kpi-val.blue{color:var(--blue)}
+.kpi-trend{font-size:11px;margin-top:4px}
+.kpi-trend.up{color:var(--green)}
+.kpi-trend.down{color:var(--coral)}
+
+/* Section cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.card-title{font-size:12px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.charts-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+
+/* Tables */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+.data-table td{padding:12px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,0.02)}
+.data-table td input{background:transparent;border:none;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;width:100%;outline:none;border-bottom:1px solid transparent;transition:border-color 0.2s;padding:2px 0}
+.data-table td input:focus{border-bottom:1px solid var(--amber)}
+
+/* Badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-green{background:rgba(52,211,153,0.15);color:var(--green)}
+.badge-amber{background:rgba(245,166,35,0.15);color:var(--amber)}
+.badge-coral{background:rgba(248,113,113,0.15);color:var(--coral)}
+.badge-teal{background:rgba(45,212,191,0.15);color:var(--teal)}
+.badge-violet{background:rgba(167,139,250,0.15);color:var(--violet)}
+.badge-blue{background:rgba(96,165,250,0.15);color:var(--blue)}
+
+/* Sliders */
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.slider-row label{font-size:12px;color:var(--muted);min-width:160px}
+.slider-row input[type=range]{flex:1;accent-color:var(--amber)}
+.slider-row .val{font-size:13px;font-weight:500;color:var(--amber);min-width:60px;text-align:right}
+
+/* Insight boxes */
+.insight-box{display:flex;gap:12px;background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid}
+.insight-box.good{border-color:var(--green)}
+.insight-box.warn{border-color:var(--amber)}
+.insight-box.bad{border-color:var(--coral)}
+.insight-icon{font-size:18px}
+.insight-text{font-size:13px;line-height:1.6;color:var(--text)}
+
+/* Progress bars */
+.progress-bar{background:var(--surface3);border-radius:4px;height:8px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:4px;transition:width 0.5s}
+
+/* Staff cards */
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.staff-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.staff-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;margin:0 auto 10px;font-family:'Playfair Display',serif}
+.staff-name{font-size:14px;font-weight:500;margin-bottom:2px}
+.staff-role{font-size:11px;color:var(--muted)}
+.staff-hrs{font-size:12px;color:var(--amber);margin-top:6px}
+
+/* Sensitivity table */
+.sens-table{width:100%;border-collapse:collapse;font-size:12px}
+.sens-table th{background:var(--surface2);color:var(--muted);padding:8px 10px;text-align:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border)}
+.sens-table td{padding:7px 10px;text-align:center;border:1px solid var(--border);font-size:12px}
+.heat-0{background:rgba(52,211,153,0.25);color:var(--green)}
+.heat-1{background:rgba(52,211,153,0.12);color:var(--green)}
+.heat-2{background:rgba(245,166,35,0.12);color:var(--amber)}
+.heat-3{background:rgba(248,113,113,0.15);color:var(--coral)}
+.heat-4{background:rgba(248,113,113,0.25);color:var(--coral)}
+
+/* Run button glow */
+.run-glow{background:linear-gradient(135deg,var(--amber),var(--coral));color:#0e0f14;font-weight:600;box-shadow:0 0 20px rgba(245,166,35,0.3);font-size:14px;padding:10px 24px}
+.run-glow:hover{box-shadow:0 0 30px rgba(245,166,35,0.5);transform:translateY(-1px)}
+
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+.section-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+.section-row-rev{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:24px}
+
+.add-btn{font-size:12px;padding:5px 12px;border-radius:6px;border:1px dashed rgba(245,166,35,0.3);background:transparent;color:var(--amber);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.2s}
+.add-btn:hover{border-color:var(--amber);background:rgba(245,166,35,0.08)}
+
+.del-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:0 4px;transition:color 0.2s}
+.del-btn:hover{color:var(--coral)}
+
+.chart-wrap{position:relative}
+
+/* Animated number */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.4s ease both}
+
+/* tooltip */
+.tip{position:relative;display:inline-block}
+.tip:hover::after{content:attr(data-tip);position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#1e2028;border:1px solid var(--border);color:var(--text);font-size:11px;padding:5px 9px;border-radius:6px;white-space:nowrap;z-index:99}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{width:56px}
+  .sidebar .logo-name,.sidebar .logo-sub,.sidebar .nav-section,.sidebar .nav-item span,.sidebar .sidebar-footer{display:none}
+  .main{margin-left:56px}
+  .charts-grid,.charts-grid-3,.section-row,.section-row-rev{grid-template-columns:1fr}
+}
+</style>
+
+<div class="shell">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-name">ProfitPlate</div>
+    <div class="logo-sub">Pro Suite</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="goTo('dashboard',this)"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" onclick="goTo('inventory',this)"><span class="nav-icon">📦</span><span>Inventory</span></div>
+    <div class="nav-item" onclick="goTo('staff',this)"><span class="nav-icon">👥</span><span>Staff</span></div>
+    <div class="nav-section">Finance</div>
+    <div class="nav-item" onclick="goTo('pricing',this)"><span class="nav-icon">💰</span><span>Pricing</span></div>
+    <div class="nav-item" onclick="goTo('profit',this)"><span class="nav-icon">📈</span><span>Profit</span></div>
+    <div class="nav-item" onclick="goTo('sensitivity',this)"><span class="nav-icon">🎛</span><span>Sensitivity</span></div>
+    <div class="nav-section">Intelligence</div>
+    <div class="nav-item" onclick="goTo('analytics',this)"><span class="nav-icon">🔬</span><span>Analytics</span></div>
+  </nav>
+  <div class="sidebar-footer"><span class="version-badge">v2.0 Pro</span></div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ===== DASHBOARD ===== -->
+<div class="page active" id="page-dashboard">
+  <div class="topbar">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">Today's overview — Tuesday, Apr 28</div></div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost">Export</button>
+      <button class="btn btn-primary" onclick="refreshDashboard()">Refresh</button>
+    </div>
+  </div>
+  <div class="kpi-row" id="dash-kpis"></div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-title">Revenue vs Profit (Weekly)</div><div class="chart-wrap" style="height:220px"><canvas id="c-revProfit" role="img" aria-label="Weekly revenue vs profit bar chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Sales Mix</div><div class="chart-wrap" style="height:220px"><canvas id="c-salesMix" role="img" aria-label="Sales mix donut chart"></canvas></div></div>
+  </div>
+  <div class="section-row">
+    <div class="card">
+      <div class="card-title">Top Menu Performance</div>
+      <table class="data-table" id="topMenuTable"></table>
+    </div>
+    <div class="card">
+      <div class="card-title">Quick Insights</div>
+      <div id="dashInsights"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INVENTORY ===== -->
+<div class="page" id="page-inventory">
+  <div class="topbar">
+    <div><div class="page-title">Inventory</div><div class="page-sub">Raw material & stock management</div></div>
+    <div class="topbar-right">
+      <button class="add-btn" onclick="addInventoryRow()">+ Add Item</button>
+    </div>
+  </div>
+  <div class="kpi-row" id="inv-kpis"></div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Stock Levels</div>
+    <table class="data-table" id="inventoryTable"></table>
+  </div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-title">Stock Value by Category</div><div class="chart-wrap" style="height:220px"><canvas id="c-invCat" role="img" aria-label="Stock value by category"></canvas></div></div>
+    <div class="card"><div class="card-title">Low Stock Alerts</div><div id="stockAlerts"></div></div>
+  </div>
+</div>
+
+<!-- ===== STAFF ===== -->
+<div class="page" id="page-staff">
+  <div class="topbar">
+    <div><div class="page-title">Staff</div><div class="page-sub">Labour planning & cost management</div></div>
+    <div class="topbar-right">
+      <button class="add-btn" onclick="addStaff()">+ Add Staff</button>
+    </div>
+  </div>
+  <div class="kpi-row" id="staff-kpis"></div>
+  <div class="staff-grid" id="staffGrid"></div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-title">Labour Cost by Role</div><div class="chart-wrap" style="height:220px"><canvas id="c-labourRole" role="img" aria-label="Labour cost by role"></canvas></div></div>
+    <div class="card"><div class="card-title">Hours Distribution</div><div class="chart-wrap" style="height:220px"><canvas id="c-hoursBar" role="img" aria-label="Hours by staff member"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ===== PRICING ===== -->
+<div class="page" id="page-pricing">
+  <div class="topbar">
+    <div><div class="page-title">Smart Pricing</div><div class="page-sub">Price based on raw material + labour costs</div></div>
+    <div class="topbar-right">
+      <button class="btn run-glow" onclick="runPricing()">Calculate Prices</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Menu Costing Engine <span style="font-size:11px;color:var(--muted);font-weight:400;letter-spacing:0">Edit costs below then calculate</span></div>
+    <table class="data-table" id="pricingTable"></table>
+    <div style="margin-top:12px"><button class="add-btn" onclick="addPricingRow()">+ Add Menu Item</button></div>
+  </div>
+  <div class="section-row" id="pricingResults" style="display:none">
+    <div class="card"><div class="card-title">Recommended Prices</div><table class="data-table" id="priceResultTable"></table></div>
+    <div class="card"><div class="card-title">Margin Analysis</div><div class="chart-wrap" style="height:220px"><canvas id="c-margins" role="img" aria-label="Margin analysis by item"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ===== PROFIT ===== -->
+<div class="page" id="page-profit">
+  <div class="topbar">
+    <div><div class="page-title">Profit Optimizer</div><div class="page-sub">Linear programming — maximize daily profit</div></div>
+    <div class="topbar-right">
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 14px">
+        <span style="font-size:12px;color:var(--muted)">Labour hrs</span>
+        <input type="range" id="labSlider" min="1" max="100" value="16" step="1" style="width:100px;accent-color:var(--amber)" oninput="document.getElementById('labVal').textContent=this.value+'h'">
+        <span id="labVal" style="font-size:13px;font-weight:500;color:var(--amber);min-width:36px">16h</span>
+      </div>
+      <button class="btn run-glow" onclick="runProfit()">Optimize</button>
+    </div>
+  </div>
+  <div class="kpi-row" id="profit-kpis" style="display:none"></div>
+  <div class="charts-grid" id="profitCharts" style="display:none">
+    <div class="card"><div class="card-title">Optimal Quantities</div><div class="chart-wrap" style="height:220px"><canvas id="c-optQty" role="img" aria-label="Optimal quantities per item"></canvas></div></div>
+    <div class="card"><div class="card-title">Profit Breakdown</div><div class="chart-wrap" style="height:220px"><canvas id="c-profitBreak" role="img" aria-label="Profit breakdown per item"></canvas></div></div>
+  </div>
+  <div class="card" id="profitTableCard" style="display:none;margin-bottom:20px">
+    <div class="card-title">Optimized Plan</div>
+    <table class="data-table" id="profitResultTable"></table>
+  </div>
+  <div id="profitInsights" style="display:none"></div>
+  <div class="card" id="profitPlaceholder">
+    <div style="text-align:center;padding:48px 20px;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:12px">📈</div>
+      <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px">Ready to Optimize</div>
+      <div style="font-size:13px">Set your labour hours and click Optimize to see the best menu mix for maximum profit.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SENSITIVITY ===== -->
+<div class="page" id="page-sensitivity">
+  <div class="topbar">
+    <div><div class="page-title">Sensitivity Analysis</div><div class="page-sub">See how changes in costs affect profitability</div></div>
+    <div class="topbar-right">
+      <button class="btn run-glow" onclick="runSensitivity()">Run Analysis</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Adjust Variables</div>
+    <div id="sensSliders"></div>
+  </div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-title">Profit Sensitivity (Cost change)</div><div class="chart-wrap" style="height:220px"><canvas id="c-sensLine" role="img" aria-label="Sensitivity line chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Break-even Analysis</div><div class="chart-wrap" style="height:220px"><canvas id="c-breakeven" role="img" aria-label="Break-even analysis chart"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Profit Heatmap (Price × Cost scenarios)</div>
+    <div style="overflow-x:auto"><table class="sens-table" id="heatmapTable"></table></div>
+  </div>
+</div>
+
+<!-- ===== ANALYTICS ===== -->
+<div class="page" id="page-analytics">
+  <div class="topbar">
+    <div><div class="page-title">Data Analytics</div><div class="page-sub">Deep dive into performance metrics</div></div>
+  </div>
+  <div class="kpi-row" id="ana-kpis"></div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-title">30-Day Revenue Trend</div><div class="chart-wrap" style="height:220px"><canvas id="c-trend" role="img" aria-label="30 day revenue trend"></canvas></div></div>
+    <div class="card"><div class="card-title">Cost Breakdown</div><div class="chart-wrap" style="height:220px"><canvas id="c-costBreak" role="img" aria-label="Cost breakdown donut"></canvas></div></div>
+  </div>
+  <div class="charts-grid-3">
+    <div class="card"><div class="card-title">Peak Hours</div><div class="chart-wrap" style="height:180px"><canvas id="c-hours" role="img" aria-label="Peak hours bar"></canvas></div></div>
+    <div class="card"><div class="card-title">Day of Week</div><div class="chart-wrap" style="height:180px"><canvas id="c-dow" role="img" aria-label="Day of week performance"></canvas></div></div>
+    <div class="card"><div class="card-title">Category Mix</div><div class="chart-wrap" style="height:180px"><canvas id="c-catMix" role="img" aria-label="Category mix"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Performance Matrix</div>
+    <table class="data-table" id="perfMatrix"></table>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end shell -->
+
+<script>
+// ===================== DATA =====================
+let menuItems=[
+  {item:'Espresso',price:5,rawCost:0.8,labour:0.05,demand:200,category:'Drinks'},
+  {item:'Cappuccino',price:6.5,rawCost:1.2,labour:0.07,demand:150,category:'Drinks'},
+  {item:'Club Sandwich',price:12,rawCost:3.5,labour:0.15,demand:80,category:'Mains'},
+  {item:'Beef Burger',price:18,rawCost:6,labour:0.25,demand:50,category:'Mains'},
+  {item:'Caesar Salad',price:14,rawCost:3,labour:0.12,demand:60,category:'Starters'},
+  {item:'Tiramisu',price:9,rawCost:2,labour:0.1,demand:40,category:'Desserts'},
+];
+let inventory=[
+  {name:'Coffee Beans',unit:'kg',qty:25,minQty:10,cost:18,category:'Beverages'},
+  {name:'Beef Mince',unit:'kg',qty:8,minQty:5,cost:12,category:'Proteins'},
+  {name:'Bread Rolls',unit:'pcs',qty:120,minQty:50,cost:0.4,category:'Bakery'},
+  {name:'Milk',unit:'L',qty:30,minQty:15,cost:1.5,category:'Dairy'},
+  {name:'Romaine Lettuce',unit:'kg',qty:6,minQty:4,cost:3,category:'Produce'},
+  {name:'Mascarpone',unit:'kg',qty:4,minQty:3,cost:9,category:'Dairy'},
+  {name:'Tomatoes',unit:'kg',qty:12,minQty:5,cost:2.5,category:'Produce'},
+  {name:'Chicken Breast',unit:'kg',qty:15,minQty:8,cost:8,category:'Proteins'},
+];
+let staffList=[
+  {name:'Marco R.',role:'Head Chef',hrs:48,rate:28,color:'#f5a623'},
+  {name:'Sophie T.',role:'Sous Chef',hrs:44,rate:22,color:'#2dd4bf'},
+  {name:'James K.',role:'Barista',hrs:40,rate:18,color:'#a78bfa'},
+  {name:'Aisha M.',role:'Waitstaff',hrs:36,rate:16,color:'#f87171'},
+  {name:'Leo P.',role:'Waitstaff',hrs:36,rate:16,color:'#34d399'},
+  {name:'Yuki S.',role:'Dishwasher',hrs:32,rate:14,color:'#60a5fa'},
+];
+
+const PALETTE=['#f5a623','#2dd4bf','#a78bfa','#f87171','#34d399','#60a5fa','#ffc65a','#f472b6'];
+
+let chartRegistry={};
+function mkChart(id,cfg){
+  if(chartRegistry[id]){chartRegistry[id].destroy()}
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  chartRegistry[id]=new Chart(ctx,cfg);
+}
+
+// ===================== NAV =====================
+function goTo(pg,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  el.classList.add('active');
+  const init={dashboard:initDashboard,inventory:initInventory,staff:initStaff,pricing:initPricing,profit:initProfit,sensitivity:initSensitivity,analytics:initAnalytics};
+  if(init[pg])init[pg]();
+}
+
+// ===================== DASHBOARD =====================
+function initDashboard(){
+  const totalRevenue=menuItems.reduce((s,m)=>s+m.price*m.demand*0.6,0);
+  const totalProfit=menuItems.reduce((s,m)=>s+(m.price-m.rawCost-m.labour*20)*m.demand*0.6,0);
+  const labourCost=staffList.reduce((s,st)=>s+st.hrs*st.rate,0);
+  const avgMargin=menuItems.reduce((s,m)=>s+((m.price-m.rawCost)/m.price)*100,0)/menuItems.length;
+  document.getElementById('dash-kpis').innerHTML=`
+    <div class="kpi-card fade-up"><div class="kpi-accent amber">💰</div><div class="kpi-label">Today's Revenue</div><div class="kpi-val amber">$${(totalRevenue/7).toFixed(0)}</div><div class="kpi-trend up">↑ 8.3% vs yesterday</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent green">📈</div><div class="kpi-label">Net Profit</div><div class="kpi-val green">$${(totalProfit/7).toFixed(0)}</div><div class="kpi-trend up">↑ 5.1%</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent teal">🍽</div><div class="kpi-label">Covers Served</div><div class="kpi-val teal">${Math.round(menuItems.reduce((s,m)=>s+m.demand*0.6,0)/7)}</div><div class="kpi-trend up">↑ 12 vs avg</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent violet">%</div><div class="kpi-label">Avg Margin</div><div class="kpi-val violet">${avgMargin.toFixed(1)}%</div><div class="kpi-trend down">↓ 0.4%</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent coral">👥</div><div class="kpi-label">Labour Cost</div><div class="kpi-val coral">$${(labourCost/4).toFixed(0)}</div><div class="kpi-trend up">↑ 2% vs last wk</div></div>
+  `;
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const rev=days.map(()=>+(800+Math.random()*600).toFixed(0));
+  const prf=rev.map(r=>+(r*0.35+Math.random()*50).toFixed(0));
+  mkChart('c-revProfit',{type:'bar',data:{labels:days,datasets:[
+    {label:'Revenue',data:rev,backgroundColor:'rgba(245,166,35,0.7)',borderRadius:6},
+    {label:'Profit',data:prf,backgroundColor:'rgba(52,211,153,0.7)',borderRadius:6}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const cats=[...new Set(menuItems.map(m=>m.category))];
+  const catRev=cats.map(c=>menuItems.filter(m=>m.category===c).reduce((s,m)=>s+m.price*m.demand*0.6,0));
+  mkChart('c-salesMix',{type:'doughnut',data:{labels:cats,datasets:[{data:catRev,backgroundColor:PALETTE.slice(0,cats.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}});
+  const sorted=[...menuItems].sort((a,b)=>(b.price-b.rawCost)*b.demand-(a.price-a.rawCost)*a.demand).slice(0,5);
+  document.getElementById('topMenuTable').innerHTML=`<thead><tr><th>Item</th><th>Category</th><th>Daily Sales</th><th>Profit</th><th>Status</th></tr></thead><tbody>`+
+    sorted.map(m=>{const p=(m.price-m.rawCost-m.labour*20)*m.demand*0.6/7;return`<tr><td>${m.item}</td><td><span class="badge badge-teal">${m.category}</span></td><td>$${(m.price*m.demand*0.6/7).toFixed(0)}</td><td style="color:var(--green)">$${p.toFixed(0)}</td><td><span class="badge badge-green">Active</span></td></tr>`}).join('')+'</tbody>';
+  document.getElementById('dashInsights').innerHTML=[
+    {t:'good',i:'✓',txt:'Espresso has the highest volume — consider bundle promotions.'},
+    {t:'warn',i:'!',txt:'Beef Burger margin dropped 2%. Raw beef cost rose this week.'},
+    {t:'good',i:'✓',txt:'Weekend revenue is 34% above weekday average.'},
+    {t:'bad',i:'✕',txt:'Tiramisu demand is below target — review dessert placement.'}
+  ].map(({t,i,txt})=>`<div class="insight-box ${t}"><span class="insight-icon">${i}</span><span class="insight-text">${txt}</span></div>`).join('');
+}
+function refreshDashboard(){initDashboard()}
+
+// ===================== INVENTORY =====================
+function renderInventory(){
+  const tbody=document.getElementById('inventoryTable');
+  tbody.innerHTML=`<thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Unit</th><th>Min Qty</th><th>Unit Cost</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody>`+
+    inventory.map((r,i)=>{
+      const val=(r.qty*r.cost).toFixed(2);
+      const pct=Math.min((r.qty/Math.max(r.minQty*2,r.qty))*100,100);
+      const status=r.qty<=r.minQty?'<span class="badge badge-coral">Low Stock</span>':r.qty<=r.minQty*1.5?'<span class="badge badge-amber">Warning</span>':'<span class="badge badge-green">OK</span>';
+      return`<tr><td><input value="${r.name}" onchange="inventory[${i}].name=this.value"></td><td><span class="badge badge-violet">${r.category}</span></td><td><input type="number" value="${r.qty}" style="width:60px" onchange="inventory[${i}].qty=+this.value;renderInventory()"></td><td>${r.unit}</td><td>${r.minQty}</td><td>$${r.cost}</td><td style="color:var(--amber)">$${val}</td><td>${status}</td><td><button class="del-btn" onclick="inventory.splice(${i},1);renderInventory()">×</button></td></tr>`;
+    }).join('')+'</tbody>';
+}
+function addInventoryRow(){inventory.push({name:'New Item',unit:'kg',qty:10,minQty:5,cost:5,category:'Other'});renderInventory()}
+function initInventory(){
+  const totalVal=inventory.reduce((s,r)=>s+r.qty*r.cost,0);
+  const lowCount=inventory.filter(r=>r.qty<=r.minQty).length;
+  document.getElementById('inv-kpis').innerHTML=`
+    <div class="kpi-card"><div class="kpi-accent amber">📦</div><div class="kpi-label">Total Items</div><div class="kpi-val amber">${inventory.length}</div></div>
+    <div class="kpi-card"><div class="kpi-accent green">💵</div><div class="kpi-label">Stock Value</div><div class="kpi-val green">$${totalVal.toFixed(0)}</div></div>
+    <div class="kpi-card"><div class="kpi-accent coral">⚠</div><div class="kpi-label">Low Stock</div><div class="kpi-val coral">${lowCount}</div></div>
+    <div class="kpi-card"><div class="kpi-accent teal">🔄</div><div class="kpi-label">Categories</div><div class="kpi-val teal">${[...new Set(inventory.map(r=>r.category))].length}</div></div>
+  `;
+  renderInventory();
+  const cats=[...new Set(inventory.map(r=>r.category))];
+  const catVals=cats.map(c=>inventory.filter(r=>r.category===c).reduce((s,r)=>s+r.qty*r.cost,0));
+  mkChart('c-invCat',{type:'bar',data:{labels:cats,datasets:[{label:'Value',data:catVals,backgroundColor:PALETTE.slice(0,cats.length),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{display:false}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const low=inventory.filter(r=>r.qty<=r.minQty*1.5);
+  document.getElementById('stockAlerts').innerHTML=low.length?low.map(r=>`<div class="insight-box ${r.qty<=r.minQty?'bad':'warn'}"><span class="insight-icon">${r.qty<=r.minQty?'✕':'!'}</span><div><div style="font-weight:500">${r.name}</div><div style="font-size:12px;color:var(--muted)">${r.qty}${r.unit} remaining — min ${r.minQty}${r.unit}</div></div></div>`).join(''):'<div class="insight-box good"><span class="insight-icon">✓</span><span class="insight-text">All stock levels are healthy.</span></div>';
+}
+
+// ===================== STAFF =====================
+function renderStaffGrid(){
+  document.getElementById('staffGrid').innerHTML=staffList.map((s,i)=>`
+    <div class="staff-card">
+      <div class="staff-avatar" style="background:${s.color}22;color:${s.color}">${s.name.split(' ').map(n=>n[0]).join('')}</div>
+      <div class="staff-name">${s.name}</div>
+      <div class="staff-role"><span class="badge badge-violet">${s.role}</span></div>
+      <div class="staff-hrs">${s.hrs}h/wk · $${(s.hrs*s.rate).toFixed(0)}/wk</div>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${(s.hrs/60*100).toFixed(0)}%;background:${s.color}"></div></div>
+    </div>`).join('');
+}
+function addStaff(){staffList.push({name:'New Staff',role:'Waitstaff',hrs:36,rate:16,color:PALETTE[staffList.length%PALETTE.length]});renderStaffGrid()}
+function initStaff(){
+  const totalLabour=staffList.reduce((s,st)=>s+st.hrs*st.rate,0);
+  const totalHrs=staffList.reduce((s,st)=>s+st.hrs,0);
+  const avgRate=(totalLabour/totalHrs).toFixed(2);
+  document.getElementById('staff-kpis').innerHTML=`
+    <div class="kpi-card"><div class="kpi-accent violet">👥</div><div class="kpi-label">Total Staff</div><div class="kpi-val violet">${staffList.length}</div></div>
+    <div class="kpi-card"><div class="kpi-accent coral">💵</div><div class="kpi-label">Weekly Labour</div><div class="kpi-val coral">$${totalLabour.toFixed(0)}</div></div>
+    <div class="kpi-card"><div class="kpi-accent teal">🕐</div><div class="kpi-label">Total Hours</div><div class="kpi-val teal">${totalHrs}</div></div>
+    <div class="kpi-card"><div class="kpi-accent amber">⚡</div><div class="kpi-label">Avg Rate</div><div class="kpi-val amber">$${avgRate}</div></div>
+  `;
+  renderStaffGrid();
+  const roles=[...new Set(staffList.map(s=>s.role))];
+  const roleCost=roles.map(r=>staffList.filter(s=>s.role===r).reduce((t,s)=>t+s.hrs*s.rate,0));
+  mkChart('c-labourRole',{type:'doughnut',data:{labels:roles,datasets:[{data:roleCost,backgroundColor:PALETTE.slice(0,roles.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+  mkChart('c-hoursBar',{type:'bar',data:{labels:staffList.map(s=>s.name.split(' ')[0]),datasets:[{label:'Hours',data:staffList.map(s=>s.hrs),backgroundColor:staffList.map(s=>s.color+'cc'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{display:false}},y:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+// ===================== PRICING =====================
+function renderPricingTable(){
+  document.getElementById('pricingTable').innerHTML=`<thead><tr><th>Item</th><th>Category</th><th>Raw Material $</th><th>Labour hrs</th><th>Labour Rate $</th><th>Current Price $</th><th></th></tr></thead><tbody>`+
+    menuItems.map((m,i)=>`<tr>
+      <td><input value="${m.item}" onchange="menuItems[${i}].item=this.value"></td>
+      <td>${m.category}</td>
+      <td><input type="number" value="${m.rawCost}" step="0.1" min="0" style="width:70px" onchange="menuItems[${i}].rawCost=+this.value"></td>
+      <td><input type="number" value="${m.labour}" step="0.01" min="0" style="width:70px" onchange="menuItems[${i}].labour=+this.value"></td>
+      <td><input type="number" value="20" step="1" min="0" id="rate_${i}" style="width:70px"></td>
+      <td><input type="number" value="${m.price}" step="0.5" min="0" style="width:70px" onchange="menuItems[${i}].price=+this.value"></td>
+      <td><button class="del-btn" onclick="menuItems.splice(${i},1);renderPricingTable()">×</button></td>
+    </tr>`).join('')+'</tbody>';
+}
+function addPricingRow(){menuItems.push({item:'New Item',price:15,rawCost:4,labour:0.15,demand:30,category:'Mains'});renderPricingTable()}
+function runPricing(){
+  document.getElementById('pricingResults').style.display='grid';
+  const TARGET_MARGIN=0.65;
+  const results=menuItems.map((m,i)=>{
+    const rate=+(document.getElementById('rate_'+i)?.value||20);
+    const totalCost=m.rawCost+m.labour*rate;
+    const recommended=+(totalCost/(1-TARGET_MARGIN)).toFixed(2);
+    const margin=((m.price-totalCost)/m.price*100).toFixed(1);
+    const recMargin=((recommended-totalCost)/recommended*100).toFixed(1);
+    return{...m,totalCost,recommended,margin,recMargin,rate};
+  });
+  document.getElementById('priceResultTable').innerHTML=`<thead><tr><th>Item</th><th>Total Cost</th><th>Current Price</th><th>Recommended</th><th>Current Margin</th></tr></thead><tbody>`+
+    results.map(r=>{
+      const diff=r.price<r.recommended;
+      return`<tr><td>${r.item}</td><td>$${r.totalCost.toFixed(2)}</td><td>$${r.price.toFixed(2)}</td><td style="color:var(--amber);font-weight:500">$${r.recommended.toFixed(2)}</td><td><span class="badge ${diff?'badge-coral':'badge-green'}">${r.margin}%</span></td></tr>`;
+    }).join('')+'</tbody>';
+  mkChart('c-margins',{type:'bar',data:{labels:results.map(r=>r.item),datasets:[
+    {label:'Current',data:results.map(r=>+r.margin),backgroundColor:'rgba(96,165,250,0.7)',borderRadius:4},
+    {label:'Recommended',data:results.map(r=>+r.recMargin),backgroundColor:'rgba(245,166,35,0.7)',borderRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{display:false}},y:{ticks:{color:'#8b8fa8',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+function initPricing(){renderPricingTable();document.getElementById('pricingResults').style.display='none'}
+
+// ===================== PROFIT OPTIMIZER =====================
+function simplex(profits,labArr,demands,totalLab){
+  let qty=demands.map(()=>0);
+  const idx=profits.map((p,i)=>({i,ratio:p/Math.max(labArr[i],0.001)})).sort((a,b)=>b.ratio-a.ratio);
+  let rem=totalLab;
+  for(const{i}of idx){if(rem<=0)break;const poss=Math.min(demands[i],rem/labArr[i]);qty[i]=poss;rem-=poss*labArr[i]}
+  return qty;
+}
+function runProfit(){
+  const totalLab=+document.getElementById('labSlider').value;
+  const profits=menuItems.map(m=>m.price-m.rawCost-m.labour*20);
+  const qty=simplex(profits,menuItems.map(m=>m.labour),menuItems.map(m=>m.demand),totalLab);
+  const revenues=menuItems.map((m,i)=>qty[i]*m.price);
+  const totProf=menuItems.map((m,i)=>qty[i]*profits[i]);
+  const labUsed=menuItems.reduce((s,m,i)=>s+m.labour*qty[i],0);
+  const totalProfit=totProf.reduce((a,b)=>a+b,0);
+  const totalRev=revenues.reduce((a,b)=>a+b,0);
+  const totalItems=qty.reduce((a,b)=>a+b,0);
+  document.getElementById('profitPlaceholder').style.display='none';
+  document.getElementById('profit-kpis').style.display='grid';
+  document.getElementById('profitCharts').style.display='grid';
+  document.getElementById('profitTableCard').style.display='block';
+  document.getElementById('profitInsights').style.display='block';
+  document.getElementById('profit-kpis').innerHTML=`
+    <div class="kpi-card fade-up"><div class="kpi-accent amber">💰</div><div class="kpi-label">Max Profit</div><div class="kpi-val amber">$${totalProfit.toFixed(2)}</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent green">📊</div><div class="kpi-label">Revenue</div><div class="kpi-val green">$${totalRev.toFixed(2)}</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent teal">🍽</div><div class="kpi-label">Items Sold</div><div class="kpi-val teal">${Math.round(totalItems)}</div></div>
+    <div class="kpi-card fade-up"><div class="kpi-accent coral">🕐</div><div class="kpi-label">Labour Used</div><div class="kpi-val coral">${labUsed.toFixed(1)}h / ${totalLab}h</div></div>
+  `;
+  mkChart('c-optQty',{type:'bar',data:{labels:menuItems.map(m=>m.item),datasets:[{label:'Qty',data:qty.map(v=>Math.round(v)),backgroundColor:PALETTE.map(c=>c+'cc'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{display:false}},y:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  mkChart('c-profitBreak',{type:'bar',data:{labels:menuItems.map(m=>m.item),datasets:[{label:'Profit',data:totProf.map(v=>+v.toFixed(2)),backgroundColor:PALETTE.map(c=>c+'cc'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{display:false}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  document.getElementById('profitResultTable').innerHTML=`<thead><tr><th>Item</th><th>Optimal Qty</th><th>Revenue</th><th>Profit</th><th>Margin</th><th>Labour Used</th></tr></thead><tbody>`+
+    menuItems.map((m,i)=>{const mg=m.price>0?((profits[i]/m.price)*100).toFixed(1):0;return`<tr><td>${m.item}</td><td>${Math.round(qty[i])}</td><td>$${revenues[i].toFixed(2)}</td><td style="color:var(--green)">$${totProf[i].toFixed(2)}</td><td><span class="badge badge-amber">${mg}%</span></td><td>${(m.labour*qty[i]).toFixed(2)}h</td></tr>`}).join('')+'</tbody>';
+  const best=menuItems[profits.indexOf(Math.max(...profits))];
+  const pct=(labUsed/totalLab)*100;
+  document.getElementById('profitInsights').innerHTML=`
+    <div class="section-row-rev">
+      <div><div class="insight-box good"><span class="insight-icon">★</span><span class="insight-text"><b>${best.item}</b> yields the highest profit per labour hour. Prioritise it during peak times.</span></div>
+      ${pct>90?`<div class="insight-box bad"><span class="insight-icon">!</span><span class="insight-text">Labour is ${pct.toFixed(0)}% utilized — a bottleneck. Consider adding staff or reducing prep time.</span></div>`:`<div class="insight-box good"><span class="insight-icon">✓</span><span class="insight-text">Labour at ${pct.toFixed(0)}% — healthy capacity. Room to scale volume.</span></div>`}</div>
+      <div class="card"><div class="card-title">Labour Utilization</div>
+        <div style="font-size:28px;font-family:'Playfair Display',serif;color:var(--amber);margin-bottom:8px">${pct.toFixed(0)}%</div>
+        <div class="progress-bar" style="height:12px"><div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${pct>90?'var(--coral)':pct>70?'var(--amber)':'var(--green)'}"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px"><span>${labUsed.toFixed(1)}h used</span><span>${(totalLab-labUsed).toFixed(1)}h free</span></div>
+      </div>
+    </div>`;
+}
+function initProfit(){document.getElementById('pricingResults') && (document.getElementById('pricingResults').style.display='none')}
+
+// ===================== SENSITIVITY =====================
+function initSensitivity(){
+  const sliders=document.getElementById('sensSliders');
+  sliders.innerHTML=['Raw Material Cost Multiplier','Labour Rate ($/hr)','Target Margin %','Demand Multiplier'].map((l,i)=>{
+    const vals=[1,20,65,1];const mins=[0.5,10,30,0.5];const maxs=[3,50,90,2];const steps=[0.1,1,1,0.1];
+    return`<div class="slider-row"><label>${l}</label><input type="range" id="sens_${i}" min="${mins[i]}" max="${maxs[i]}" value="${vals[i]}" step="${steps[i]}" oninput="document.getElementById('sv_${i}').textContent=parseFloat(this.value).toFixed(2)"><span class="val" id="sv_${i}">${vals[i]}</span></div>`;
+  }).join('');
+  runSensitivity();
+}
+function runSensitivity(){
+  const rawMult=+document.getElementById('sens_0')?.value||1;
+  const labRate=+document.getElementById('sens_1')?.value||20;
+  const margin=+document.getElementById('sens_2')?.value||65;
+  const demMult=+document.getElementById('sens_3')?.value||1;
+  const scenarios=[-40,-20,0,20,40,60];
+  const baseProfit=menuItems.reduce((s,m)=>{const p=m.price-(m.rawCost*rawMult)-(m.labour*labRate);return s+p*m.demand*demMult},0);
+  const lineData=scenarios.map(pct=>{
+    const mult=1+pct/100;
+    return menuItems.reduce((s,m)=>{const p=m.price-(m.rawCost*rawMult*mult)-(m.labour*labRate);return s+p*m.demand*demMult},0).toFixed(0);
+  });
+  mkChart('c-sensLine',{type:'line',data:{labels:scenarios.map(s=>(s>=0?'+':'')+s+'%'),datasets:[{label:'Profit',data:lineData,borderColor:'#f5a623',backgroundColor:'rgba(245,166,35,0.1)',borderWidth:2,tension:0.4,pointBackgroundColor:'#f5a623',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const qtyRange=[10,20,30,40,50,60,70,80];
+  const avgPrice=menuItems.reduce((s,m)=>s+m.price,0)/menuItems.length;
+  const avgCost=menuItems.reduce((s,m)=>s+m.rawCost*rawMult+m.labour*labRate,0)/menuItems.length;
+  mkChart('c-breakeven',{type:'line',data:{labels:qtyRange,datasets:[
+    {label:'Revenue',data:qtyRange.map(q=>(q*avgPrice).toFixed(0)),borderColor:'#34d399',borderWidth:2,tension:0.1,pointBackgroundColor:'#34d399'},
+    {label:'Total Cost',data:qtyRange.map(q=>(q*avgCost+200).toFixed(0)),borderColor:'#f87171',borderWidth:2,tension:0.1,pointBackgroundColor:'#f87171'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const prices=[8,10,12,14,16];const costs=[2,3,4,5,6];
+  const tbl=document.getElementById('heatmapTable');
+  const heatLevels=['heat-0','heat-1','heat-2','heat-3','heat-4'];
+  let html=`<tr><th>Price \\ Cost</th>${costs.map(c=>`<th>Cost $${c}</th>`).join('')}</tr>`;
+  prices.forEach(p=>{
+    html+=`<tr><th>Price $${p}</th>`;
+    costs.forEach(c=>{
+      const prof=((p-c)/p*100).toFixed(0);
+      const lvl=prof>70?0:prof>50?1:prof>30?2:prof>10?3:4;
+      html+=`<td class="${heatLevels[lvl]}">${prof}%</td>`;
+    });
+    html+='</tr>';
+  });
+  tbl.innerHTML=html;
+}
+
+// ===================== ANALYTICS =====================
+function initAnalytics(){
+  const totalRev=menuItems.reduce((s,m)=>s+m.price*m.demand*0.6,0);
+  const totalCost=menuItems.reduce((s,m)=>s+(m.rawCost+m.labour*20)*m.demand*0.6,0);
+  const labCost=staffList.reduce((s,st)=>s+st.hrs*st.rate,0)*4;
+  document.getElementById('ana-kpis').innerHTML=`
+    <div class="kpi-card"><div class="kpi-accent amber">📅</div><div class="kpi-label">Monthly Revenue</div><div class="kpi-val amber">$${totalRev.toFixed(0)}</div></div>
+    <div class="kpi-card"><div class="kpi-accent green">📈</div><div class="kpi-label">Monthly Profit</div><div class="kpi-val green">$${(totalRev-totalCost-labCost).toFixed(0)}</div></div>
+    <div class="kpi-card"><div class="kpi-accent coral">💸</div><div class="kpi-label">Total Costs</div><div class="kpi-val coral">$${(totalCost+labCost).toFixed(0)}</div></div>
+    <div class="kpi-card"><div class="kpi-accent teal">%</div><div class="kpi-label">Profit Margin</div><div class="kpi-val teal">${(((totalRev-totalCost-labCost)/totalRev)*100).toFixed(1)}%</div></div>
+  `;
+  const trendData=Array.from({length:30},(_,i)=>+(600+Math.sin(i/3)*120+Math.random()*80).toFixed(0));
+  mkChart('c-trend',{type:'line',data:{labels:Array.from({length:30},(_,i)=>`D${i+1}`),datasets:[{label:'Revenue',data:trendData,borderColor:'#f5a623',backgroundColor:'rgba(245,166,35,0.08)',borderWidth:2,tension:0.4,fill:true,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8',maxTicksLimit:8},grid:{display:false}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const rawTotal=menuItems.reduce((s,m)=>s+m.rawCost*m.demand*0.6,0);
+  const labTotal=menuItems.reduce((s,m)=>s+m.labour*20*m.demand*0.6,0);
+  mkChart('c-costBreak',{type:'doughnut',data:{labels:['Raw Materials','Labour','Overhead','Marketing'],datasets:[{data:[rawTotal.toFixed(0),labCost.toFixed(0),(totalRev*0.05).toFixed(0),(totalRev*0.03).toFixed(0)],backgroundColor:['#f5a623','#f87171','#a78bfa','#60a5fa'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+  const hours=['11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm'];
+  mkChart('c-hours',{type:'bar',data:{labels:hours,datasets:[{label:'Orders',data:[12,38,52,31,18,14,22,45,58,42,28],backgroundColor:'rgba(45,212,191,0.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  mkChart('c-dow',{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Revenue',data:[820,750,890,810,1200,1450,1100],backgroundColor:['rgba(245,166,35,0.5)','rgba(245,166,35,0.5)','rgba(245,166,35,0.5)','rgba(245,166,35,0.5)','rgba(245,166,35,0.8)','rgba(52,211,153,0.8)','rgba(52,211,153,0.7)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b8fa8',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#8b8fa8',callback:v=>'$'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const cats=[...new Set(menuItems.map(m=>m.category))];
+  mkChart('c-catMix',{type:'doughnut',data:{labels:cats,datasets:[{data:cats.map(c=>menuItems.filter(m=>m.category===c).reduce((s,m)=>s+m.demand,0)),backgroundColor:PALETTE.slice(0,cats.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}});
+  const sorted=[...menuItems].sort((a,b)=>b.price*b.demand-a.price*a.demand);
+  document.getElementById('perfMatrix').innerHTML=`<thead><tr><th>Item</th><th>Category</th><th>Unit Price</th><th>Raw Cost</th><th>Margin %</th><th>Weekly Volume</th><th>Weekly Revenue</th><th>Rating</th></tr></thead><tbody>`+
+    sorted.map(m=>{const mg=((m.price-m.rawCost)/m.price*100).toFixed(1);const rev=(m.price*m.demand*0.6).toFixed(0);const rating=mg>60&&m.demand>60?'⭐ Star':mg>50?'✓ Good':m.demand<30?'↓ Low Vol':'↗ OK';const bc=mg>60&&m.demand>60?'badge-green':mg>50?'badge-teal':m.demand<30?'badge-coral':'badge-amber';return`<tr><td style="font-weight:500">${m.item}</td><td><span class="badge badge-violet">${m.category}</span></td><td>$${m.price}</td><td>$${m.rawCost}</td><td style="color:${mg>55?'var(--green)':'var(--amber)'}">${mg}%</td><td>${Math.round(m.demand*0.6*7/7)}/day</td><td>$${rev}</td><td><span class="badge ${bc}">${rating}</span></td></tr>`}).join('')+'</tbody>';
+}
+
+// ===================== INIT =====================
+initDashboard();
+</script>
